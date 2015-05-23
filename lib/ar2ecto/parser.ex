@@ -18,7 +18,12 @@ defmodule Ar2ecto.Parser do
     |> W.write(file, output_dir)
   end
 
-  defp _parse(dir, app_name, :dir), do: dir |> File.ls |> Map.enum(&(_parse(&1, app_name, :file)))
+  defp _parse(dir, app_name, output_dir, :dir) do
+    dir
+    |> File.ls!
+    |> Enum.map(&(Path.join(dir,&1)))
+    |> Enum.map(&(_parse(&1, app_name, output_dir, :file)))
+  end
 
   defp process([], _app_name, answer), do: answer
   defp process(line, app_name) when is_binary(line), do: line |> L.tokenize |> L.render(app_name)

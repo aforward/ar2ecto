@@ -27,6 +27,10 @@ defmodule Ar2ecto.Line do
         [_] = match
         %{type: :end, line: line}
 
+      match = Regex.run(~r{\s*timestamps\s*}, line) ->
+        [_] = match
+        %{type: :timestamps}
+
       true ->
         %{type: :unknown, line: line}
     end
@@ -41,6 +45,7 @@ defmodule Ar2ecto.Line do
       :create_table -> "    create table(:#{token[:name]}) do"
       :drop_table   -> "    drop table(:#{token[:name]})"
       :add_field    -> "      add :#{token[:name]}, :#{token[:format]}"
+      :timestamps   -> "      timestamps"
       :end          -> token[:line]
       :unknown      -> token[:line]
     end

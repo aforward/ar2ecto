@@ -48,6 +48,10 @@ defmodule Ar2ecto.LineTest do
     assert L.tokenize("  end") == %{type: :end, line: "  end"}
   end
 
+  test "tokenize :timestamps" do
+    assert L.tokenize("  timestamps ") == %{type: :timestamps}
+  end
+
   test "tokenize :unknown" do
     assert L.tokenize("xxx") == %{type: :unknown, line: "xxx"}
   end
@@ -84,6 +88,11 @@ defmodule Ar2ecto.LineTest do
   test "render :drop_table" do
     actual = "drop_table :paydays" |> L.tokenize |> L.render("MyApp")
     assert actual == "    drop table(:paydays)"
+  end
+
+  test "render :timestamps" do
+    actual = "timestamps" |> L.tokenize |> L.render("MyApp")
+    assert actual == "      timestamps"
   end
 
   test "render :add_field" do
