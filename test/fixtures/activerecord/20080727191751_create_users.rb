@@ -17,21 +17,3 @@ class CreateUsers < ActiveRecord::Migration
     drop_table "users"
   end
 end
-
-
-defmodule Xdate.Repo.Migrations.CreatePayday do
-  use Ecto.Migration
-
-  def change do
-    create table(:paydays) do
-      add :exchange, :string
-      add :ticker, :string
-      add :own, :date
-      add :x, :date
-      add :pay, :date
-      add :amount, :decimal
-
-      timestamps
-    end
-  end
-end
