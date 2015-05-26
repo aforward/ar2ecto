@@ -33,6 +33,6 @@ Migrating MyApp from ActiveRecord to Ecto...
 DONE, Migrating from ActiveRecord to Ecto.
 ```
 
-And within that diretory you should see your new migrations.
+And within that directory you should see your new migrations.
 
 This is under active development so please be vocal when you encounter issues.
