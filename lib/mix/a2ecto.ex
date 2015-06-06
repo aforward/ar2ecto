@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Ar2ecto do
   For example,
 
   ```
-  mix a2ecto MyApp ./path/to/active_record/migrations ./path/to/myapp/priv/repo/migrations
+  mix ar2ecto MyApp ./path/to/oldapp/db/migrate ./path/to/newapp/priv/repo/migrations
   ```
 
   Please report any bugs to aforward@gmail.com
