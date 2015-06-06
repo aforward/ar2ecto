@@ -15,7 +15,7 @@ defmodule Ar2ecto.ParserTest do
   end
 
   test "parse multiple files" do
-    assert P.parse("MyApp", "test/fixtures/activerecord", "./tmp/outputfixtures")
+    assert (P.parse("MyApp", "test/fixtures/activerecord", "./tmp/outputfixtures") |> Enum.sort)
            == ["./tmp/outputfixtures/20080727191751_create_users.exs", "./tmp/outputfixtures/20080728200552_create_sessions.exs"]
     assert File.read!("./tmp/outputfixtures/20080727191751_create_users.exs")
            == File.read!("test/fixtures/ecto/20080727191751_create_users.exs")
