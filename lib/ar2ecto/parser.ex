@@ -25,10 +25,31 @@ defmodule Ar2ecto.Parser do
     |> Enum.map(&(_parse(&1, app_name, output_dir, :file)))
   end
 
-  defp process(line, app_name) when is_binary(line), do: line |> L.tokenize |> L.render(app_name)
+  defp process(line, app_name) when is_binary(line), do: line |> L.tokenize |> render(app_name)
   defp process([], _app_name, answer), do: answer
   defp process([line|tail], app_name, answer) do
-    answer ++ [ process(line, app_name) ] ++ process(tail, app_name, [])
+    subanswer = process(line, app_name)
+    if subanswer == :ignore_block do
+      ignore(tail, app_name, answer)
+    else
+      answer ++ [ subanswer ] ++ process(tail, app_name, [])
+    end
+  end
+
+  defp ignore([], _app_name, answer), do: answer
+  defp ignore([line|tail], app_name, answer) do
+    if L.tokenize(line)[:type] == :end do
+      process(tail, app_name, answer)
+    else
+      ignore(tail, app_name, answer)
+    end
+  end
+
+  defp render(token, app_name) do
+    case token[:type] do
+      :ignore_block -> :ignore_block
+      _ -> L.render(token, app_name)
+    end
   end
 
 end

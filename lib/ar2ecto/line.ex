@@ -3,6 +3,10 @@ defmodule Ar2ecto.Line do
   def tokenize(nil), do: %{type: :unknown, line: nil}
   def tokenize(line) do
     cond do
+
+      match = Regex.run(~r{for\s*([^\s]*)\s*in}, line) ->
+        %{type: :ignore_block}
+
       match = Regex.run(~r{.*class\s*([^\s]*)\s*<\s*ActiveRecord::Migration.*}, line) ->
         [_, name] = match
         %{type: :defmodule, name: name}
@@ -31,6 +35,10 @@ defmodule Ar2ecto.Line do
           name: String.to_atom(name),
           default: :null}
 
+      match = Regex.run(~r{remove_column\s*:([^\s]*)\s*,\s*:([^\s,]*)}, line) ->
+        [_, table, name] = match
+        %{type: :remove_column, table: String.to_atom(table), name: String.to_atom(name)}
+
       match = Regex.run(~r{[^\s]*\.([^\s]*)\s*:([^\s,]*)}, line) ->
         [_, format, name] = match
         %{type: :add_field, name: String.to_atom(name), format: String.to_atom(format)}
@@ -50,19 +58,20 @@ defmodule Ar2ecto.Line do
 
   def render(token, app_name) do
     case token[:type] do
-      :defmodule    -> "defmodule #{app_name}.Repo.Migrations.#{token[:name]} do\n  use Ecto.Migration"
-      :up           -> "  def up do"
-      :down         -> "  def down do"
-      :change       -> "  def change do"
-      :create_table -> "    create table(:#{token[:name]}) do"
-      :drop_table   -> "    drop table(:#{token[:name]})"
-      :add_field    -> "      add :#{token[:name]}, :#{token[:format]}"
-      :timestamps   -> "      timestamps"
-      :add_index    -> "    create index(:#{token[:table]}, [:#{token[:fields] |> Enum.join(",:")}])"
-      :end          -> token[:line]
-      :unknown      -> token[:line]
-      :add_column   -> case token[:default] do
-        :null           -> "    alter table(:#{token[:table]}) do\n      add :#{token[:name]}, :#{token[:format]}, default: nil\n    end"
+      :defmodule       -> "defmodule #{app_name}.Repo.Migrations.#{token[:name]} do\n  use Ecto.Migration"
+      :up              -> "  def up do"
+      :down            -> "  def down do"
+      :change          -> "  def change do"
+      :create_table    -> "    create table(:#{token[:name]}) do"
+      :drop_table      -> "    drop table(:#{token[:name]})"
+      :add_field       -> "      add :#{token[:name]}, :#{token[:format]}"
+      :timestamps      -> "      timestamps"
+      :add_index       -> "    create index(:#{token[:table]}, [:#{token[:fields] |> Enum.join(",:")}])"
+      :end             -> token[:line]
+      :unknown         -> token[:line]
+      :remove_column   -> "    alter table(:#{token[:table]}) do\n      remove :#{token[:name]}\n    end"
+      :add_column      -> case token[:default] do
+        :null             -> "    alter table(:#{token[:table]}) do\n      add :#{token[:name]}, :#{token[:format]}, default: nil\n    end"
       end
     end
   end
