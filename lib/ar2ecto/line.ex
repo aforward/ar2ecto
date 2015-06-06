@@ -12,8 +12,8 @@ defmodule Ar2ecto.Line do
         %{type: String.to_atom(direction)}
 
       match = Regex.run(~r{add_index\s*:([^\s]*),\s*:([^\s]*)}, line) ->
-        [_, name, field] = match
-        %{type: :add_index, table: String.to_atom(name), fields: [String.to_atom(field)]}
+        [_, table, field] = match
+        %{type: :add_index, table: String.to_atom(table), fields: [String.to_atom(field)]}
 
       match = Regex.run(~r{(create_table|drop_table) \"([^\"]*)\"}, line) ->
         [_, operation, name] = match
@@ -22,6 +22,14 @@ defmodule Ar2ecto.Line do
       match = Regex.run(~r{(create_table|drop_table) :([^\s]*)}, line) ->
         [_, operation, name] = match
         %{type: String.to_atom(operation), name: String.to_atom(name)}
+
+      match = Regex.run(~r{add_column\s*:([^\s]*)\s*,\s*:([^\s,]*)\s*,\s*:([^\s,]*)\s*,\s*:default\s*=>\s*nil}, line) ->
+        [_, table, name, format] = match
+        %{type: :add_column,
+          table: String.to_atom(table),
+          format: String.to_atom(format),
+          name: String.to_atom(name),
+          default: :null}
 
       match = Regex.run(~r{[^\s]*\.([^\s]*)\s*:([^\s,]*)}, line) ->
         [_, format, name] = match
@@ -53,6 +61,9 @@ defmodule Ar2ecto.Line do
       :add_index    -> "    create index(:#{token[:table]}, [:#{token[:fields] |> Enum.join(",:")}])"
       :end          -> token[:line]
       :unknown      -> token[:line]
+      :add_column   -> case token[:default] do
+        :null           -> "    alter table(:#{token[:table]}) do\n      add :#{token[:name]}, :#{token[:format]}, default: nil\n    end"
+      end
     end
   end
 

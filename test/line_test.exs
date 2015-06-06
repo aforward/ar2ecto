@@ -119,4 +119,14 @@ defmodule Ar2ecto.LineTest do
     assert L.tokenize(nil) == %{type: :unknown, line: nil}
   end
 
+  test "tokenize :add_column" do
+    assert L.tokenize("add_column :websites, :theme, :string, :default => nil") ==
+           %{type: :add_column, table: :websites, name: :theme, format: :string, default: :null}
+  end
+
+  test "render :add_column" do
+    actual = "add_column :websites, :theme, :string, :default => nil" |> L.tokenize |> L.render("MyApp")
+    assert actual == "    alter table(:websites) do\n      add :theme, :string, default: nil\n    end"
+  end
+
 end
