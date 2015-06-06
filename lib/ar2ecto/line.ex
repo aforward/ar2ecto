@@ -11,6 +11,10 @@ defmodule Ar2ecto.Line do
         [_, direction] = match
         %{type: String.to_atom(direction)}
 
+      match = Regex.run(~r{add_index\s*:([^\s]*),\s*:([^\s]*)}, line) ->
+        [_, name, field] = match
+        %{type: :add_index, table: String.to_atom(name), fields: [String.to_atom(field)]}
+
       match = Regex.run(~r{(create_table|drop_table) \"([^\"]*)\"}, line) ->
         [_, operation, name] = match
         %{type: String.to_atom(operation), name: String.to_atom(name)}
@@ -46,6 +50,7 @@ defmodule Ar2ecto.Line do
       :drop_table   -> "    drop table(:#{token[:name]})"
       :add_field    -> "      add :#{token[:name]}, :#{token[:format]}"
       :timestamps   -> "      timestamps"
+      :add_index    -> "    create index(:#{token[:table]}, [:#{token[:fields] |> Enum.join(",:")}])"
       :end          -> token[:line]
       :unknown      -> token[:line]
     end

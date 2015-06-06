@@ -52,6 +52,10 @@ defmodule Ar2ecto.LineTest do
     assert L.tokenize("  timestamps ") == %{type: :timestamps}
   end
 
+  test "tokenize :index" do
+    assert L.tokenize("add_index :sessions, :session_id") == %{type: :add_index, table: :sessions, fields: [:session_id]}
+  end
+
   test "tokenize :unknown" do
     assert L.tokenize("xxx") == %{type: :unknown, line: "xxx"}
   end
@@ -103,6 +107,11 @@ defmodule Ar2ecto.LineTest do
   test "render :end" do
     actual = "  end" |> L.tokenize |> L.render("MyApp")
     assert actual == "  end"
+  end
+
+  test "render :add_index" do
+    actual = "add_index :sessions, :session_id" |> L.tokenize |> L.render("MyApp")
+    assert actual == "    create index(:sessions, [:session_id])"
   end
 
   test "render :unknown" do
