@@ -168,6 +168,16 @@ defmodule Ar2ecto.LineTest do
     assert actual == "    alter table(:addresses) do\n      add :nearest_airport, :string, size: 3\n    end"
   end
 
+  test "tokenize :modify_column" do
+    assert L.tokenize("change_column :contact_infos, :email_address_reservations, :string") ==
+           %{type: :modify_column, table: :contact_infos, name: :email_address_reservations, format: :string, default: nil, size: nil}
+  end
+
+  test "render :modify_column" do
+    actual = "change_column :websites, :theme, :string, :default => nil" |> L.tokenize |> L.render("MyApp")
+    assert actual == "    alter table(:websites) do\n      modify :theme, :string, default: nil\n    end"
+  end
+
   test "tokenize :remove_column" do
     assert L.tokenize("remove_column :websites, :theme") ==
            %{type: :remove_column, table: :websites, name: :theme}

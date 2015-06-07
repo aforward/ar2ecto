@@ -40,11 +40,15 @@ defmodule Ar2ecto.Line do
           old_name: String.to_atom(old_name),
           new_name: String.to_atom(new_name)}
 
-      match = Regex.run(~r{add_column\s*:([^\s]*)\s*,\s*:([^\s,]*)\s*,\s*:([^\s,]*)\s*}, line) ->
-        [_, table, name, format] = match
+      match = Regex.run(~r{(add_column|change_column)\s*:([^\s]*)\s*,\s*:([^\s,]*)\s*,\s*:([^\s,]*)\s*}, line) ->
+        [_, raw_operation, table, name, format] = match
+        operation = case raw_operation do
+          "change_column" -> :modify_column
+          _ -> String.to_atom(raw_operation)
+        end
         line
         |> field_opts
-        |> Dict.merge(%{type: :add_column,
+        |> Dict.merge(%{type: operation,
                         table: String.to_atom(table),
                         format: String.to_atom(format),
                         name: String.to_atom(name)})
@@ -82,14 +86,15 @@ defmodule Ar2ecto.Line do
       :change          -> "  def change do"
       :create_table    -> "    create table(:#{token[:name]}#{render_create_table_opts(token)}) do"
       :drop_table      -> "    drop table(:#{token[:name]})"
-      :add_field       -> "      add :#{token[:name]}, :#{token[:format]}#{render_add_coumn_opts(token)}"
+      :add_field       -> "      add :#{token[:name]}, :#{token[:format]}#{render_column_opts(token)}"
       :timestamps      -> "      timestamps"
       :add_index       -> "    #{render_index(:create, token)}"
       :remove_index    -> "    #{render_index(:drop, token)}"
       :end             -> token[:line]
       :unknown         -> token[:line]
       :remove_column   -> "    alter table(:#{token[:table]}) do\n      remove :#{token[:name]}\n    end"
-      :add_column      -> "    alter table(:#{token[:table]}) do\n      add :#{token[:name]}, :#{token[:format]}#{render_add_coumn_opts(token)}\n    end"
+      :add_column      -> "    #{render_column(:add, token)}"
+      :modify_column   -> "    #{render_column(:modify, token)}"
       :rename_column   -> "    execute \"ALTER TABLE #{token[:table]} RENAME COLUMN #{token[:old_name]} TO #{token[:new_name]}\""
       :rename_table    -> "    execute \"ALTER TABLE #{token[:old_name]} RENAME TO #{token[:new_name]}\""
     end
@@ -127,7 +132,7 @@ defmodule Ar2ecto.Line do
     "#{create_or_drop} index(:#{token[:table]}, [:#{token[:fields] |> Enum.join(",:")}])"
   end
 
-  defp render_add_coumn_opts(token) do
+  defp render_column_opts(token) do
     default_opt = case token[:default] do
       :null -> ", default: nil"
       _     -> ""
@@ -137,6 +142,10 @@ defmodule Ar2ecto.Line do
       _     -> ", size: #{token[:size]}"
     end
     "#{default_opt}#{size_opt}"
+  end
+
+  defp render_column(method, token) do
+    "alter table(:#{token[:table]}) do\n      #{method} :#{token[:name]}, :#{token[:format]}#{render_column_opts(token)}\n    end"
   end
 
   defp render_create_table_opts(token) do
