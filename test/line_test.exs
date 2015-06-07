@@ -153,6 +153,11 @@ defmodule Ar2ecto.LineTest do
            %{type: :add_column, table: :addresses, name: :nearest_airport, format: :string, default: nil, size: "3"}
   end
 
+  test "tokenize :add_column (as 'for' in name)" do
+    assert L.tokenize("add_column :amenity_lists, :for_fee_internet,                     :boolean") ==
+           %{type: :add_column, table: :amenity_lists, name: :for_fee_internet, format: :boolean, default: nil, size: nil}
+  end
+
   test "render :add_column (default)" do
     actual = "add_column :websites, :theme, :string, :default => nil" |> L.tokenize |> L.render("MyApp")
     assert actual == "    alter table(:websites) do\n      add :theme, :string, default: nil\n    end"

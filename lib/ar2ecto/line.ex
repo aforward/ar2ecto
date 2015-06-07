@@ -4,7 +4,7 @@ defmodule Ar2ecto.Line do
   def tokenize(line) do
     cond do
 
-      match = Regex.run(~r{for\s*([^\s]*)\s*in}, line) ->
+      match = Regex.run(~r{for\s+([^\s]*)\s+in}, line) ->
         %{type: :ignore_block}
 
       match = Regex.run(~r{.*class\s*([^\s]*)\s*<\s*ActiveRecord::Migration.*}, line) ->
