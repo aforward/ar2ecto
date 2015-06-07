@@ -19,13 +19,13 @@ defmodule Ar2ecto.Line do
         [_, table, field] = match
         %{type: :add_index, table: String.to_atom(table), fields: [String.to_atom(field)]}
 
-      match = Regex.run(~r{(create_table|drop_table) \"([^\"]*)\"}, line) ->
+      match = Regex.run(~r{(create_table|drop_table)\s*\(?\s*\"([^\"]*)\"}, line) ->
         [_, operation, name] = match
-        %{type: String.to_atom(operation), name: String.to_atom(name)}
+        tokenize_create_table(operation, name, line)
 
-      match = Regex.run(~r{(create_table|drop_table) :([^\s]*)}, line) ->
+      match = Regex.run(~r{(create_table|drop_table)\s*\(?\s*:([^\s,]*)}, line) ->
         [_, operation, name] = match
-        %{type: String.to_atom(operation), name: String.to_atom(name)}
+        tokenize_create_table(operation, name, line)
 
       match = Regex.run(~r{add_column\s*:([^\s]*)\s*,\s*:([^\s,]*)\s*,\s*:([^\s,]*)\s*}, line) ->
         [_, table, name, format] = match
@@ -67,21 +67,33 @@ defmodule Ar2ecto.Line do
       :up              -> "  def up do"
       :down            -> "  def down do"
       :change          -> "  def change do"
-      :create_table    -> "    create table(:#{token[:name]}) do"
+      :create_table    -> "    create table(:#{token[:name]}#{render_create_table_opts(token)}) do"
       :drop_table      -> "    drop table(:#{token[:name]})"
-      :add_field       -> "      add :#{token[:name]}, :#{token[:format]}#{render_opts(token)}"
+      :add_field       -> "      add :#{token[:name]}, :#{token[:format]}#{render_add_coumn_opts(token)}"
       :timestamps      -> "      timestamps"
       :add_index       -> "    create index(:#{token[:table]}, [:#{token[:fields] |> Enum.join(",:")}])"
       :end             -> token[:line]
       :unknown         -> token[:line]
       :remove_column   -> "    alter table(:#{token[:table]}) do\n      remove :#{token[:name]}\n    end"
-      :add_column      -> "    alter table(:#{token[:table]}) do\n      add :#{token[:name]}, :#{token[:format]}#{render_opts(token)}\n    end"
+      :add_column      -> "    alter table(:#{token[:table]}) do\n      add :#{token[:name]}, :#{token[:format]}#{render_add_coumn_opts(token)}\n    end"
     end
+  end
+
+  defp tokenize_create_table("create_table", name, line) do
+    primary_key = cond do
+      Regex.run(~r{:id\s*=>\s*false}, line) -> false
+      Regex.run(~r{id:\s*false}, line) -> false
+      true -> true
+    end
+    %{type: :create_table, name: String.to_atom(name), primary_key: primary_key}
+  end
+  defp tokenize_create_table(operation, name, line) do
+    %{type: String.to_atom(operation), name: String.to_atom(name)}
   end
 
   defp field_opts(line) do
     default = cond do
-      submatch = Regex.run(~r{:default\s*=>\s*nil}, line) -> :null
+      Regex.run(~r{:default\s*=>\s*nil}, line) -> :null
       true -> nil
     end
 
@@ -95,7 +107,7 @@ defmodule Ar2ecto.Line do
     %{default: default, size: size}
   end
 
-  defp render_opts(token) do
+  defp render_add_coumn_opts(token) do
     default_opt = case token[:default] do
       :null -> ", default: nil"
       _     -> ""
@@ -106,5 +118,14 @@ defmodule Ar2ecto.Line do
     end
     "#{default_opt}#{size_opt}"
   end
+
+  defp render_create_table_opts(token) do
+    if token[:primary_key] == false do
+      ", primary_key: false"
+    else
+      ""
+    end
+  end
+
 
 end

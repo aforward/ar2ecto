@@ -39,14 +39,20 @@ defmodule Ar2ecto.LineTest do
   end
 
   test "tokenize :create_table" do
-    assert L.tokenize("create_table \"users\", :force => true do |t|") == %{type: :create_table, name: :users}
-    assert L.tokenize("create_table \"peoples\" do |xxx|") == %{type: :create_table, name: :peoples}
-    assert L.tokenize("create_table :peeps do |xxx|") == %{type: :create_table, name: :peeps}
+    assert L.tokenize("create_table \"users\", :force => true do |t|") == %{type: :create_table, name: :users, primary_key: true}
+    assert L.tokenize("create_table \"peoples\" do |xxx|") == %{type: :create_table, name: :peoples, primary_key: true}
+    assert L.tokenize("create_table :peeps do |xxx|") == %{type: :create_table, name: :peeps, primary_key: true}
+    assert L.tokenize("create_table(:countries, { :id => false }) do |t|") == %{type: :create_table, name: :countries, primary_key: false}
   end
 
-  test "render :create_table" do
+  test "render :create_table (primary_key true)" do
     actual = "create_table :paydays do |xxx|" |> L.tokenize |> L.render("MyApp")
     assert actual == "    create table(:paydays) do"
+  end
+
+  test "render :create_table (primary_key false)" do
+    actual = "create_table(:countries, { :id => false }) do |t|" |> L.tokenize |> L.render("MyApp")
+    assert actual == "    create table(:countries, primary_key: false) do"
   end
 
   test "tokenize :drop_table" do
