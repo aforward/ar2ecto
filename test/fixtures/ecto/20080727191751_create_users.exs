@@ -7,8 +7,8 @@ defmodule MyApp.Repo.Migrations.CreateUsers do
       add :type, :string
       add :username, :string
       add :email, :string
-      add :crypted_password, :string
-      add :salt, :string
+      add :crypted_password, :string, size: 40
+      add :salt, :string, size: 40
       add :destroyed_at, :datetime
       add :destroyed_by, :integer
     end

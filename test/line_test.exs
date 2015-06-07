@@ -60,22 +60,31 @@ defmodule Ar2ecto.LineTest do
   end
 
   test "tokenize :add_field" do
-    assert L.tokenize("t.datetime :created_at") == %{type: :add_field, name: :created_at, format: :datetime}
-    assert L.tokenize("t.string :type") == %{type: :add_field, name: :type, format: :string}
-    assert L.tokenize("t.integer :destroyed_by") == %{type: :add_field, name: :destroyed_by, format: :integer}
+    assert L.tokenize("t.datetime :created_at") == %{type: :add_field, name: :created_at, format: :datetime, default: nil, size: nil}
+    assert L.tokenize("t.string :type") == %{type: :add_field, name: :type, format: :string, default: nil, size: nil}
+    assert L.tokenize("t.integer :destroyed_by") == %{type: :add_field, name: :destroyed_by, format: :integer, default: nil, size: nil}
   end
 
   test "tokenize :add_field extrac params" do
-    assert L.tokenize("t.string   :crypted_password, :limit => 40") == %{type: :add_field, name: :crypted_password, format: :string}
+    assert L.tokenize("t.string   :crypted_password, :limit => 40") == %{type: :add_field, name: :crypted_password, format: :string, default: nil, size: "40"}
   end
 
   test "tokenize :add_field handle spaces" do
-    assert L.tokenize("   t.string   :email  ") == %{type: :add_field, name: :email, format: :string}
+    assert L.tokenize("   t.string   :email  ") == %{type: :add_field, name: :email, format: :string, default: nil, size: nil}
+  end
+
+  test "tokenize :add_field (limit)" do
+    assert L.tokenize("t.string  :iso2,     :limit => 2") == %{type: :add_field, name: :iso2, format: :string, size: "2", default: nil}
   end
 
   test "render :add_field" do
     actual = "t.datetime :created_at" |> L.tokenize |> L.render("MyApp")
     assert actual == "      add :created_at, :datetime"
+  end
+
+  test "render :add_field (limit)" do
+    actual = "t.string  :iso2,     :limit => 2" |> L.tokenize |> L.render("MyApp")
+    assert actual == "      add :iso2, :string, size: 2"
   end
 
   test "tokenize :end" do
@@ -119,14 +128,24 @@ defmodule Ar2ecto.LineTest do
     assert L.tokenize(nil) == %{type: :unknown, line: nil}
   end
 
-  test "tokenize :add_column" do
+  test "tokenize :add_column (default)" do
     assert L.tokenize("add_column :websites, :theme, :string, :default => nil") ==
-           %{type: :add_column, table: :websites, name: :theme, format: :string, default: :null}
+           %{type: :add_column, table: :websites, name: :theme, format: :string, default: :null, size: nil}
   end
 
-  test "render :add_column" do
+  test "tokenize :add_column (size/limit)" do
+    assert L.tokenize("add_column :addresses, :nearest_airport,      :string, :limit => 3") ==
+           %{type: :add_column, table: :addresses, name: :nearest_airport, format: :string, default: nil, size: "3"}
+  end
+
+  test "render :add_column (default)" do
     actual = "add_column :websites, :theme, :string, :default => nil" |> L.tokenize |> L.render("MyApp")
     assert actual == "    alter table(:websites) do\n      add :theme, :string, default: nil\n    end"
+  end
+
+  test "render :add_column (size)" do
+    actual = "add_column :addresses, :nearest_airport,      :string, :limit => 3" |> L.tokenize |> L.render("MyApp")
+    assert actual == "    alter table(:addresses) do\n      add :nearest_airport, :string, size: 3\n    end"
   end
 
   test "tokenize :remove_column" do
@@ -143,5 +162,8 @@ defmodule Ar2ecto.LineTest do
     assert L.tokenize("for w in Website.find(:all)") ==
            %{type: :ignore_block}
   end
+
+
+
 
 end

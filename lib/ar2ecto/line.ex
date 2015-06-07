@@ -27,13 +27,14 @@ defmodule Ar2ecto.Line do
         [_, operation, name] = match
         %{type: String.to_atom(operation), name: String.to_atom(name)}
 
-      match = Regex.run(~r{add_column\s*:([^\s]*)\s*,\s*:([^\s,]*)\s*,\s*:([^\s,]*)\s*,\s*:default\s*=>\s*nil}, line) ->
+      match = Regex.run(~r{add_column\s*:([^\s]*)\s*,\s*:([^\s,]*)\s*,\s*:([^\s,]*)\s*}, line) ->
         [_, table, name, format] = match
-        %{type: :add_column,
-          table: String.to_atom(table),
-          format: String.to_atom(format),
-          name: String.to_atom(name),
-          default: :null}
+        line
+        |> field_opts
+        |> Dict.merge(%{type: :add_column,
+                        table: String.to_atom(table),
+                        format: String.to_atom(format),
+                        name: String.to_atom(name)})
 
       match = Regex.run(~r{remove_column\s*:([^\s]*)\s*,\s*:([^\s,]*)}, line) ->
         [_, table, name] = match
@@ -41,7 +42,11 @@ defmodule Ar2ecto.Line do
 
       match = Regex.run(~r{[^\s]*\.([^\s]*)\s*:([^\s,]*)}, line) ->
         [_, format, name] = match
-        %{type: :add_field, name: String.to_atom(name), format: String.to_atom(format)}
+        line
+        |> field_opts
+        |> Dict.merge(%{type: :add_field,
+                        name: String.to_atom(name),
+                        format: String.to_atom(format)})
 
       match = Regex.run(~r{\s*end\s*}, line) ->
         [_] = match
@@ -64,17 +69,42 @@ defmodule Ar2ecto.Line do
       :change          -> "  def change do"
       :create_table    -> "    create table(:#{token[:name]}) do"
       :drop_table      -> "    drop table(:#{token[:name]})"
-      :add_field       -> "      add :#{token[:name]}, :#{token[:format]}"
+      :add_field       -> "      add :#{token[:name]}, :#{token[:format]}#{render_opts(token)}"
       :timestamps      -> "      timestamps"
       :add_index       -> "    create index(:#{token[:table]}, [:#{token[:fields] |> Enum.join(",:")}])"
       :end             -> token[:line]
       :unknown         -> token[:line]
       :remove_column   -> "    alter table(:#{token[:table]}) do\n      remove :#{token[:name]}\n    end"
-      :add_column      -> case token[:default] do
-        :null             -> "    alter table(:#{token[:table]}) do\n      add :#{token[:name]}, :#{token[:format]}, default: nil\n    end"
-      end
+      :add_column      -> "    alter table(:#{token[:table]}) do\n      add :#{token[:name]}, :#{token[:format]}#{render_opts(token)}\n    end"
     end
   end
 
+  defp field_opts(line) do
+    default = cond do
+      submatch = Regex.run(~r{:default\s*=>\s*nil}, line) -> :null
+      true -> nil
+    end
+
+    size = cond do
+      submatch = Regex.run(~r{:limit\s*=>\s*([^\s]*)}, line) ->
+        [_, size] = submatch
+        size
+      true ->
+        nil
+    end
+    %{default: default, size: size}
+  end
+
+  defp render_opts(token) do
+    default_opt = case token[:default] do
+      :null -> ", default: nil"
+      _     -> ""
+    end
+    size_opt = case token[:size] do
+      nil  -> ""
+      _     -> ", size: #{token[:size]}"
+    end
+    "#{default_opt}#{size_opt}"
+  end
 
 end
