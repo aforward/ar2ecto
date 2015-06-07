@@ -173,6 +173,16 @@ defmodule Ar2ecto.LineTest do
     assert actual == "    alter table(:websites) do\n      remove :theme\n    end"
   end
 
+  test "tokenize :rename_column" do
+    assert L.tokenize("rename_column :contact_infos, :email_address, :email_address_info") ==
+           %{type: :rename_column, table: :contact_infos, old_name: :email_address, new_name: :email_address_info}
+  end
+
+  test "render :rename_column" do
+    actual = "rename_column :websites, :details, :description" |> L.tokenize |> L.render("MyApp")
+    assert actual == "    execute \"ALTER TABLE websites RENAME COLUMN details TO description\""
+  end
+
   test "tokenize :ignore_block" do
     assert L.tokenize("for w in Website.find(:all)") ==
            %{type: :ignore_block}
