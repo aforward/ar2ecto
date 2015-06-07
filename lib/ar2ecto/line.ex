@@ -15,9 +15,9 @@ defmodule Ar2ecto.Line do
         [_, direction] = match
         %{type: String.to_atom(direction)}
 
-      match = Regex.run(~r{add_index\s*:([^\s]*),\s*:([^\s]*)}, line) ->
-        [_, table, field] = match
-        %{type: :add_index, table: String.to_atom(table), fields: [String.to_atom(field)]}
+      match = Regex.run(~r{(add_index|remove_index)\s*:([^\s]*),\s*:([^\s]*)}, line) ->
+        [_, operation, table, field] = match
+        %{type: String.to_atom(operation), table: String.to_atom(table), fields: [String.to_atom(field)]}
 
       match = Regex.run(~r{(create_table|drop_table)\s*\(?\s*\"([^\"]*)\"}, line) ->
         [_, operation, name] = match
@@ -71,7 +71,8 @@ defmodule Ar2ecto.Line do
       :drop_table      -> "    drop table(:#{token[:name]})"
       :add_field       -> "      add :#{token[:name]}, :#{token[:format]}#{render_add_coumn_opts(token)}"
       :timestamps      -> "      timestamps"
-      :add_index       -> "    create index(:#{token[:table]}, [:#{token[:fields] |> Enum.join(",:")}])"
+      :add_index       -> "    #{render_index(:create, token)}"
+      :remove_index    -> "    #{render_index(:drop, token)}"
       :end             -> token[:line]
       :unknown         -> token[:line]
       :remove_column   -> "    alter table(:#{token[:table]}) do\n      remove :#{token[:name]}\n    end"
@@ -105,6 +106,10 @@ defmodule Ar2ecto.Line do
         nil
     end
     %{default: default, size: size}
+  end
+
+  defp render_index(create_or_drop, token) do
+    "#{create_or_drop} index(:#{token[:table]}, [:#{token[:fields] |> Enum.join(",:")}])"
   end
 
   defp render_add_coumn_opts(token) do

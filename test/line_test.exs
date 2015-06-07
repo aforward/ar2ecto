@@ -112,13 +112,22 @@ defmodule Ar2ecto.LineTest do
     assert actual == "      timestamps"
   end
 
-  test "tokenize :index" do
+  test "tokenize :add_index" do
     assert L.tokenize("add_index :sessions, :session_id") == %{type: :add_index, table: :sessions, fields: [:session_id]}
   end
 
   test "render :add_index" do
     actual = "add_index :sessions, :session_id" |> L.tokenize |> L.render("MyApp")
     assert actual == "    create index(:sessions, [:session_id])"
+  end
+
+  test "tokenize :remove_index" do
+    assert L.tokenize("remove_index :countries, :iso2") == %{type: :remove_index, table: :countries, fields: [:iso2]}
+  end
+
+  test "render :remove_index" do
+    actual = "remove_index :countries, :iso2" |> L.tokenize |> L.render("MyApp")
+    assert actual == "    drop index(:countries, [:iso2])"
   end
 
   test "tokenize :unknown" do
