@@ -27,6 +27,12 @@ defmodule Ar2ecto.Line do
         [_, operation, name] = match
         tokenize_create_table(operation, name, line)
 
+      match = Regex.run(~r{rename_table\s*:([^\s]*)\s*,\s*:([^\s,]*)}, line) ->
+        [_, old_name, new_name] = match
+        %{type: :rename_table,
+          old_name: String.to_atom(old_name),
+          new_name: String.to_atom(new_name)}
+
       match = Regex.run(~r{rename_column\s*:([^\s]*)\s*,\s*:([^\s,]*)\s*,\s*:([^\s,]*)\s*}, line) ->
         [_, table, old_name, new_name] = match
         %{type: :rename_column,
@@ -85,6 +91,7 @@ defmodule Ar2ecto.Line do
       :remove_column   -> "    alter table(:#{token[:table]}) do\n      remove :#{token[:name]}\n    end"
       :add_column      -> "    alter table(:#{token[:table]}) do\n      add :#{token[:name]}, :#{token[:format]}#{render_add_coumn_opts(token)}\n    end"
       :rename_column   -> "    execute \"ALTER TABLE #{token[:table]} RENAME COLUMN #{token[:old_name]} TO #{token[:new_name]}\""
+      :rename_table    -> "    execute \"ALTER TABLE #{token[:old_name]} RENAME TO #{token[:new_name]}\""
     end
   end
 
